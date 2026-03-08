@@ -24,6 +24,12 @@ app.include_router(api_router, prefix="/api/v1")
 async def root():
     return {"message": "Expense Analyser PDF Parser API is running"}
 
+# if __name__ == "__main__":
+#     import uvicorn
+#     uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True)
+import os
+
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True)
+    port = int(os.environ.get("PORT", 8000))  # default to 8000 locally
+    uvicorn.run("app.main:app", host="0.0.0.0", port=port, reload=True)
