@@ -70,27 +70,22 @@ class TransactionMapperService:
             return None
 
         description = str(row[col_map.get("ref", 1)] or "").strip()
-        keys = [k.strip() for k in description.split("/") if k.strip()]
+        if "UPI" in description.upper():
+            keys = [k.strip() for k in description.split("/") if k.strip()]
+        else:
+            # Preserve full description to allow matching multi-word merchant rules (e.g., "ATM CASH")
+            keys = [description]
 
         # Categorization logic
         category = "other"
         tag = "other"
         
-        all_potential_keys = []
-        for key in keys:
-            all_potential_keys.append(key.lower())
-            words = [w.strip().lower() for w in key.split() if w.strip()]
-            all_potential_keys.extend(words)
-
-        for key_lower in all_potential_keys:
-            matched = False
-            for rule in rules:
-                if key_lower == rule["merchant"].lower():
-                    category = rule["category"].lower()
-                    tag = rule["tag"].lower()
-                    matched = True
-                    break
-            if matched:
+        description_lower = description.lower()
+        for rule in rules:
+            merchant_lower = rule["merchant"].lower()
+            if merchant_lower in description_lower:
+                category = rule["category"].lower()
+                tag = rule["tag"].lower()
                 break
 
         return {
