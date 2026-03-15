@@ -6,19 +6,34 @@ import os
 
 logger = logging.getLogger(__name__)
 
+from app.services.gsheet_service import gsheet_service
+
 class PDFParserService:
     def __init__(self):
         self.merchant_rules = self._load_merchant_rules()
 
     def _load_merchant_rules(self):
+        """
+        Loads merchant rules from Google Sheets with fallback to local JSON.
+        """
+        try:
+            # Try fetching from Google Sheets first
+            rules = gsheet_service.fetch_merchant_rules()
+            if rules:
+                return rules
+            logger.warning("No merchant rules found in Google Sheets, trying local fallback")
+        except Exception as e:
+            logger.error(f"Error fetching merchant rules from Google Sheets: {e}")
+
+        # Fallback to local JSON
         try:
             rules_path = os.path.join(os.path.dirname(__file__), "..", "merchant_rules.json")
             if os.path.exists(rules_path):
-                with open(rules_path, "r") as f:
+                with open(rules_path, "r", encoding="utf-8") as f:
                     return json.load(f)
             return []
         except Exception as e:
-            logger.error(f"Error loading merchant rules: {e}")
+            logger.error(f"Error loading local merchant rules: {e}")
             return []
 
     def map_row_to_transaction(self, row: list, col_map: dict = None) -> dict:
