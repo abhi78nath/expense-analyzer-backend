@@ -1,1 +1,5 @@
 parsed_data.json
+
+# Python-generated files
+__pycache__/
+*.py[oc]
