@@ -3,3 +3,6 @@ uvicorn>=0.30.0
 pdfplumber>=0.11.0
 python-multipart>=0.0.12
 pydantic>=2.9.0
+google-auth>=2.29.0
+google-api-python-client>=2.125.0
+python-dotenv>=1.0.1
