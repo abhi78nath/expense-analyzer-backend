@@ -16,7 +16,7 @@ class Transaction(BaseModel):
         populate_by_name = True
 
 class ParseResult(BaseModel):
-    filename: str
+    filenames: List[str]
     total_transactions: int
     transactions: List[Dict[str, Any]]
     metadata: Dict[str, Any]
