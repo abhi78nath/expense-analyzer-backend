@@ -17,7 +17,7 @@ class GSheetService:
         self.creds_path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS", "app/service-account.json")
         self._cache: Optional[List[Dict[str, str]]] = None
         self._last_fetch_time: float = 0
-        self._cache_ttl: int = 300  # 5 minutes cache
+        self._cache_ttl: int = 60  # 1 minute cache
 
     def _get_credentials(self):
         if not os.path.exists(self.creds_path):
