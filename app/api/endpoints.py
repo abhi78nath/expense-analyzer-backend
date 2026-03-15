@@ -70,21 +70,35 @@ async def parse_pdf(
 
     return result
             
+from app.services.gsheet_service import gsheet_service
+
 @router.get("/transaction-tags")
-async def get_transaction_tags():
+async def get_transaction_tags(refresh: bool = False):
     """
-    Load and return the data from merchant_rules.json
+    Fetch and return merchant rules from Google Sheets with fallback to local JSON
     """
     try:
-        rules_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "merchant_rules.json")
-        if not os.path.exists(rules_path):
-            raise HTTPException(status_code=404, detail="merchant_rules.json not found")
+        # Fetch rules from Google Sheets
+        rules = gsheet_service.fetch_merchant_rules(force_refresh=refresh)
+
+        if rules:
+            logger.info(f"Returning {len(rules)} merchant rules from Google Sheets")
+            return rules
         
-        with open(rules_path, "r", encoding="utf-8") as f:
-            data = json.load(f)
-        return data
-    except json.JSONDecodeError:
-        raise HTTPException(status_code=500, detail="Failed to decode merchant_rules.json")
+        logger.warning("No rules found in Google Sheets, trying fallback")
+
     except Exception as e:
-        logger.error(f"Error reading merchant rules: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"Error fetching merchant rules from Google Sheets: {str(e)}")
+
+    # Fallback to local JSON
+    try:
+        rules_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "merchant_rules.json")
+        if os.path.exists(rules_path):
+            with open(rules_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                logger.info(f"Returning rules from fallback JSON")
+                return data
+        raise HTTPException(status_code=404, detail="merchant_rules.json not found and GSheet fetch failed")
+    except Exception as e:
+        logger.error(f"Fallback failed: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to fetch merchant rules")

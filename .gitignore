@@ -3,3 +3,9 @@ parsed_data.json
 # Python-generated files
 __pycache__/
 *.py[oc]
+
+# service-account
+service-account.json
+
+# .env
+.env
