@@ -8,6 +8,9 @@ class Transaction(BaseModel):
     credit: Optional[float] = None
     debit: Optional[float] = None
     balance: Optional[float] = None
+    ref_keys: List[str] = []
+    category: str = "other"
+    tag: str = "other"
 
     class Config:
         populate_by_name = True

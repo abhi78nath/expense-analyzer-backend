@@ -1,12 +1,27 @@
 import pdfplumber
 import io
 import logging
+import json
+import os
 
 logger = logging.getLogger(__name__)
 
 class PDFParserService:
-    @staticmethod
-    def map_row_to_transaction(row: list, col_map: dict = None) -> dict:
+    def __init__(self):
+        self.merchant_rules = self._load_merchant_rules()
+
+    def _load_merchant_rules(self):
+        try:
+            rules_path = os.path.join(os.path.dirname(__file__), "..", "merchant_rules.json")
+            if os.path.exists(rules_path):
+                with open(rules_path, "r") as f:
+                    return json.load(f)
+            return []
+        except Exception as e:
+            logger.error(f"Error loading merchant rules: {e}")
+            return []
+
+    def map_row_to_transaction(self, row: list, col_map: dict = None) -> dict:
         """
         Maps a raw table row to a structured transaction dictionary.
         """
@@ -46,9 +61,38 @@ class PDFParserService:
         if not date_val or not date_val[0].isdigit():
             return None
 
+        description = str(row[col_map.get("ref", 1)] or "").strip()
+        keys = [k.strip() for k in description.split("/") if k.strip()]
+
+        # Categorization logic
+        category = "other"
+        tag = "other"
+        
+        # Flatten keys to check individual words if needed
+        all_potential_keys = []
+        for key in keys:
+            all_potential_keys.append(key.lower())
+            # Also add individual words context
+            words = [w.strip().lower() for w in key.split() if w.strip()]
+            all_potential_keys.extend(words)
+
+        for key_lower in all_potential_keys:
+            matched = False
+            for rule in self.merchant_rules:
+                if key_lower == rule["merchant"].lower():
+                    category = rule["category"].lower()
+                    tag = rule["tag"].lower()
+                    matched = True
+                    break
+            if matched:
+                break
+
         return {
             "date": date_val,
-            "transaction reference": str(row[col_map.get("ref", 1)] or "").strip(),
+            "transaction reference": description,
+            "ref_keys": keys,
+            "category": category,
+            "tag": tag,
             "ref.no/chq.no": str(row[col_map.get("chq", 2)] or "").strip(),
             "debit": clean_num(row[col_map.get("debit", 3)]),
             "credit": clean_num(row[col_map.get("credit", 4)]),
@@ -78,8 +122,7 @@ class PDFParserService:
                 return col_map
         return None
 
-    @staticmethod
-    def parse_and_structure_pdf(file_content: bytes, password: str = None) -> list:
+    def parse_and_structure_pdf(self, file_content: bytes, password: str = None) -> list:
         """
         Parses PDF and returns structured transaction data.
         """
@@ -95,7 +138,7 @@ class PDFParserService:
                         # logger.info(f"Found column mapping: {col_map}")
                         
                         for row in table:
-                            mapped = PDFParserService.map_row_to_transaction(row, col_map)
+                            mapped = self.map_row_to_transaction(row, col_map)
                             if mapped:
                                 structured_data.append(mapped)
             return structured_data
@@ -103,8 +146,7 @@ class PDFParserService:
             logger.error(f"Error parsing PDF: {str(e)}")
             raise e
 
-    @staticmethod
-    def parse_pdf(file_content: bytes, password: str = None) -> list:
+    def parse_pdf(self, file_content: bytes, password: str = None) -> list:
         # Re-using the logic inside parse_and_structure_pdf or keep for raw access
         all_data = []
         with pdfplumber.open(io.BytesIO(file_content), password=password) as pdf:
@@ -115,8 +157,7 @@ class PDFParserService:
                         if any(row): all_data.append(row)
         return all_data
 
-    @staticmethod
-    def extract_text(file_content: bytes, password: str = None) -> str:
+    def extract_text(self, file_content: bytes, password: str = None) -> str:
         """
         Extracts raw text from PDF.
         """

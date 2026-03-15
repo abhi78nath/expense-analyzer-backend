@@ -1,0 +1,167 @@
+[
+    {
+        "merchant": "Swiggy",
+        "category": "Food",
+        "tag": "Food Delivery"
+    },
+    {
+        "merchant": "Zomato",
+        "category": "Food",
+        "tag": "Food Delivery"
+    },
+    {
+        "merchant": "Domino's",
+        "category": "Food",
+        "tag": "Restaurant"
+    },
+    {
+        "merchant": "McDonald's",
+        "category": "Food",
+        "tag": "Restaurant"
+    },
+    {
+        "merchant": "BigBasket",
+        "category": "Food",
+        "tag": "Groceries"
+    },
+    {
+        "merchant": "Amazon",
+        "category": "Shopping",
+        "tag": "Online Shopping"
+    },
+    {
+        "merchant": "Flipkart",
+        "category": "Shopping",
+        "tag": "Online Shopping"
+    },
+    {
+        "merchant": "Myntra",
+        "category": "Shopping",
+        "tag": "Clothing"
+    },
+    {
+        "merchant": "Netflix",
+        "category": "Subscriptions",
+        "tag": "Streaming"
+    },
+    {
+        "merchant": "Hotstar",
+        "category": "Subscriptions",
+        "tag": "Streaming"
+    },
+    {
+        "merchant": "Spotify",
+        "category": "Subscriptions",
+        "tag": "Streaming"
+    },
+    {
+        "merchant": "Uber",
+        "category": "Transport",
+        "tag": "Taxi"
+    },
+    {
+        "merchant": "Ola",
+        "category": "Transport",
+        "tag": "Taxi"
+    },
+    {
+        "merchant": "IRCTC",
+        "category": "Travel",
+        "tag": "Train"
+    },
+    {
+        "merchant": "GoAir",
+        "category": "Travel",
+        "tag": "Flight"
+    },
+    {
+        "merchant": "IndiGo",
+        "category": "Travel",
+        "tag": "Flight"
+    },
+    {
+        "merchant": "Air India",
+        "category": "Travel",
+        "tag": "Flight"
+    },
+    {
+        "merchant": "Airtel",
+        "category": "Bills",
+        "tag": "Mobile Recharge"
+    },
+    {
+        "merchant": "Jio",
+        "category": "Bills",
+        "tag": "Mobile Recharge"
+    },
+    {
+        "merchant": "Vodafone",
+        "category": "Bills",
+        "tag": "Mobile Recharge"
+    },
+    {
+        "merchant": "HDFC Bank",
+        "category": "Income",
+        "tag": "Salary"
+    },
+    {
+        "merchant": "SBI Bank",
+        "category": "Income",
+        "tag": "Salary"
+    },
+    {
+        "merchant": "ICICI Bank",
+        "category": "Income",
+        "tag": "Salary"
+    },
+    {
+        "merchant": "Paytm",
+        "category": "Transfer",
+        "tag": "Wallet Transfer"
+    },
+    {
+        "merchant": "PhonePe",
+        "category": "Transfer",
+        "tag": "Wallet Transfer"
+    },
+    {
+        "merchant": "Google Pay",
+        "category": "Transfer",
+        "tag": "UPI Transfer"
+    },
+    {
+        "merchant": "Bajaj Finserv",
+        "category": "Finance",
+        "tag": "Loan Payment"
+    },
+    {
+        "merchant": "SBI Card",
+        "category": "Finance",
+        "tag": "Credit Card Payment"
+    },
+    {
+        "merchant": "HDFC Card",
+        "category": "Finance",
+        "tag": "Credit Card Payment"
+    },
+    {
+        "merchant": "Apollo Pharmacy",
+        "category": "Health",
+        "tag": "Pharmacy"
+    },
+    {
+        "merchant": "MedPlus",
+        "category": "Health",
+        "tag": "Pharmacy"
+    },
+    {
+        "merchant": "Fortis",
+        "category": "Health",
+        "tag": "Hospital"
+    },
+    {
+        "merchant": "Max Healthcare",
+        "category": "Health",
+        "tag": "Hospital"
+    }
+]
