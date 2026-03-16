@@ -26,6 +26,7 @@ class ErrorResponse(BaseModel):
     detail: Optional[str] = None
 
 class MerchantRule(BaseModel):
+    id: Optional[int] = None
     merchant: str
     category: str
     tag: str

@@ -116,3 +116,31 @@ async def add_merchant_rule(rule: MerchantRule):
     except Exception as e:
         logger.error(f"Error adding merchant rule: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+
+@router.put("/merchant-rules/{rule_id}")
+async def update_merchant_rule(rule_id: int, rule: MerchantRule):
+    """
+    Update an existing merchant rule in Google Sheets
+    """
+    try:
+        success = gsheet_service.update_merchant_rule(rule_id, rule.model_dump())
+        if success:
+            return {"message": f"Merchant rule {rule_id} updated successfully"}
+        raise HTTPException(status_code=404, detail=f"Merchant rule {rule_id} not found")
+    except Exception as e:
+        logger.error(f"Error updating merchant rule: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+
+@router.delete("/merchant-rules/{rule_id}")
+async def delete_merchant_rule(rule_id: int):
+    """
+    Delete a merchant rule from Google Sheets
+    """
+    try:
+        success = gsheet_service.delete_merchant_rule(rule_id)
+        if success:
+            return {"message": f"Merchant rule {rule_id} deleted successfully"}
+        raise HTTPException(status_code=404, detail=f"Merchant rule {rule_id} not found")
+    except Exception as e:
+        logger.error(f"Error deleting merchant rule: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")

@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 class GSheetService:
     def __init__(self):
         self.spreadsheet_id = os.getenv("GOOGLE_SHEET_ID")
-        self.range_name = os.getenv("SHEET_RANGE", "Sheet1!A:C")
+        self.range_name = os.getenv("SHEET_RANGE", "Sheet1!A:D")
         self.creds_path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS", "app/service-account.json")
         self._cache: Optional[List[Dict[str, str]]] = None
         self._last_fetch_time: float = 0
@@ -93,12 +93,28 @@ class GSheetService:
             return False
 
         try:
+            # 1. Fetch current rules to determine next ID
+            current_rules = self.fetch_merchant_rules(force_refresh=True)
+            next_id = 1
+            if current_rules:
+                ids = []
+                for r in current_rules:
+                    val = r.get("id")
+                    if val is not None:
+                        try:
+                            ids.append(int(val))
+                        except (ValueError, TypeError):
+                            continue
+                if ids:
+                    next_id = max(ids) + 1
+
             creds = self._get_credentials()
             service = build('sheets', 'v4', credentials=creds)
             
             # Prepare the row data
             # Rule dictionary expects keys: merchant, category, tag
             row_data = [
+                next_id,
                 rule.get("merchant", ""),
                 rule.get("category", ""),
                 rule.get("tag", "")
@@ -108,8 +124,6 @@ class GSheetService:
                 'values': [row_data]
             }
             
-            # Range for appending - using the same range but without A:C if it's dynamic
-            # sheet_name = self.range_name.split('!')[0] if '!' in self.range_name else "Sheet1"
             append_range = self.range_name
             
             result = service.spreadsheets().values().append(
@@ -122,11 +136,150 @@ class GSheetService:
             
             # Invalidate cache
             self._cache = None
-            logger.info(f"Successfully added new merchant rule to Google Sheets: {rule}")
+            logger.info(f"Successfully added new merchant rule (ID: {next_id}) to Google Sheets: {rule}")
             return True
 
         except Exception as e:
             logger.error(f"Error adding to Google Sheets: {str(e)}")
+            raise e
+
+    def update_merchant_rule(self, rule_id: int, rule: Dict[str, str]) -> bool:
+        """
+        Updates an existing merchant rule by ID.
+        """
+        if not self.spreadsheet_id:
+            logger.error("GOOGLE_SHEET_ID not set in environment")
+            return False
+
+        try:
+            creds = self._get_credentials()
+            service = build('sheets', 'v4', credentials=creds)
+            
+            # 1. Fetch values to find the row index
+            result = service.spreadsheets().values().get(
+                spreadsheetId=self.spreadsheet_id,
+                range=self.range_name
+            ).execute()
+            values = result.get('values', [])
+            
+            if not values:
+                logger.error("No values found in Google Sheets")
+                return False
+
+            # Find the row index (headers are in values[0])
+            row_index = -1
+            for i, row in enumerate(values[1:], start=2):
+                if row and len(row) > 0 and str(row[0]) == str(rule_id):
+                    row_index = i
+                    break
+            
+            if row_index == -1:
+                logger.error(f"Rule with ID {rule_id} not found")
+                return False
+
+            # 2. Prepare updated row data
+            # Keeping the ID the same
+            row_data = [
+                rule_id,
+                rule.get("merchant", ""),
+                rule.get("category", ""),
+                rule.get("tag", "")
+            ]
+            
+            # Map column index to letters (A=0, B=1, etc.)
+            sheet_name = self.range_name.split('!')[0] if '!' in self.range_name else "Sheet1"
+            update_range = f"{sheet_name}!A{row_index}:D{row_index}"
+            
+            body = {
+                'values': [row_data]
+            }
+            
+            service.spreadsheets().values().update(
+                spreadsheetId=self.spreadsheet_id,
+                range=update_range,
+                valueInputOption='USER_ENTERED',
+                body=body
+            ).execute()
+            
+            # Invalidate cache
+            self._cache = None
+            logger.info(f"Successfully updated merchant rule (ID: {rule_id})")
+            return True
+
+        except Exception as e:
+            logger.error(f"Error updating Google Sheets: {str(e)}")
+            raise e
+
+    def delete_merchant_rule(self, rule_id: int) -> bool:
+        """
+        Deletes a merchant rule by ID.
+        """
+        if not self.spreadsheet_id:
+            logger.error("GOOGLE_SHEET_ID not set in environment")
+            return False
+
+        try:
+            creds = self._get_credentials()
+            service = build('sheets', 'v4', credentials=creds)
+            
+            # 1. Fetch values to find the row index
+            result = service.spreadsheets().values().get(
+                spreadsheetId=self.spreadsheet_id,
+                range=self.range_name
+            ).execute()
+            values = result.get('values', [])
+            
+            if not values:
+                logger.error("No values found in Google Sheets")
+                return False
+
+            # Find the row index
+            target_row_idx = -1
+            for i, row in enumerate(values[1:], start=1): # 0-indexed for batchUpdate, 1 is row after header
+                if row and len(row) > 0 and str(row[0]) == str(rule_id):
+                    target_row_idx = i
+                    break
+            
+            if target_row_idx == -1:
+                logger.error(f"Rule with ID {rule_id} not found")
+                return False
+
+            # 2. Delete the row using batchUpdate
+            sheet_metadata = service.spreadsheets().get(spreadsheetId=self.spreadsheet_id).execute()
+            sheet_name = self.range_name.split('!')[0] if '!' in self.range_name else "Sheet1"
+            sheet_id = 0
+            for s in sheet_metadata.get('sheets', []):
+                if s.get('properties', {}).get('title') == sheet_name:
+                    sheet_id = s.get('properties', {}).get('sheetId')
+                    break
+
+            batch_update_request = {
+                'requests': [
+                    {
+                        'deleteDimension': {
+                            'range': {
+                                'sheetId': sheet_id,
+                                'dimension': 'ROWS',
+                                'startIndex': target_row_idx,
+                                'endIndex': target_row_idx + 1
+                            }
+                        }
+                    }
+                ]
+            }
+            
+            service.spreadsheets().batchUpdate(
+                spreadsheetId=self.spreadsheet_id,
+                body=batch_update_request
+            ).execute()
+            
+            # Invalidate cache
+            self._cache = None
+            logger.info(f"Successfully deleted merchant rule (ID: {rule_id})")
+            return True
+
+        except Exception as e:
+            logger.error(f"Error deleting from Google Sheets: {str(e)}")
             raise e
 
 # Singleton instance
