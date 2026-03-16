@@ -24,3 +24,8 @@ class ParseResult(BaseModel):
 class ErrorResponse(BaseModel):
     error: str
     detail: Optional[str] = None
+
+class MerchantRule(BaseModel):
+    merchant: str
+    category: str
+    tag: str

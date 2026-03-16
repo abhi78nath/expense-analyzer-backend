@@ -23,7 +23,7 @@ class GSheetService:
         if not os.path.exists(self.creds_path):
             raise FileNotFoundError(f"Service account file not found at {self.creds_path}")
         
-        scopes = ['https://www.googleapis.com/auth/spreadsheets.readonly']
+        scopes = ['https://www.googleapis.com/auth/spreadsheets']
         return service_account.Credentials.from_service_account_file(
             self.creds_path, scopes=scopes
         )
@@ -82,6 +82,51 @@ class GSheetService:
             if self._cache:
                 logger.warning("Fetch failed, returning stale cache")
                 return self._cache
+            raise e
+
+    def add_merchant_rule(self, rule: Dict[str, str]) -> bool:
+        """
+        Appends a new merchant rule (merchant, category, tag) to the Google Sheet.
+        """
+        if not self.spreadsheet_id:
+            logger.error("GOOGLE_SHEET_ID not set in environment")
+            return False
+
+        try:
+            creds = self._get_credentials()
+            service = build('sheets', 'v4', credentials=creds)
+            
+            # Prepare the row data
+            # Rule dictionary expects keys: merchant, category, tag
+            row_data = [
+                rule.get("merchant", ""),
+                rule.get("category", ""),
+                rule.get("tag", "")
+            ]
+            
+            body = {
+                'values': [row_data]
+            }
+            
+            # Range for appending - using the same range but without A:C if it's dynamic
+            # sheet_name = self.range_name.split('!')[0] if '!' in self.range_name else "Sheet1"
+            append_range = self.range_name
+            
+            result = service.spreadsheets().values().append(
+                spreadsheetId=self.spreadsheet_id,
+                range=append_range,
+                valueInputOption='USER_ENTERED',
+                insertDataOption='INSERT_ROWS',
+                body=body
+            ).execute()
+            
+            # Invalidate cache
+            self._cache = None
+            logger.info(f"Successfully added new merchant rule to Google Sheets: {rule}")
+            return True
+
+        except Exception as e:
+            logger.error(f"Error adding to Google Sheets: {str(e)}")
             raise e
 
 # Singleton instance

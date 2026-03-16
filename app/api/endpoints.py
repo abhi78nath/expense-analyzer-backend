@@ -1,7 +1,7 @@
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException
 from typing import Optional, List
 from app.services.pdf_parser import PDFParserService
-from app.models.schemas import ParseResult, ErrorResponse
+from app.models.schemas import ParseResult, ErrorResponse, MerchantRule
 import logging
 import json
 import os
@@ -102,3 +102,17 @@ async def get_transaction_tags(refresh: bool = False):
     except Exception as e:
         logger.error(f"Fallback failed: {str(e)}")
         raise HTTPException(status_code=500, detail="Failed to fetch merchant rules")
+
+@router.post("/merchant-rules")
+async def add_merchant_rule(rule: MerchantRule):
+    """
+    Add a new merchant rule to Google Sheets
+    """
+    try:
+        success = gsheet_service.add_merchant_rule(rule.model_dump())
+        if success:
+            return {"message": "Merchant rule added successfully"}
+        raise HTTPException(status_code=500, detail="Failed to add merchant rule")
+    except Exception as e:
+        logger.error(f"Error adding merchant rule: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
