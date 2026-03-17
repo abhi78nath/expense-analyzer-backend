@@ -12,7 +12,7 @@ class PDFParserService:
     def __init__(self):
         pass
 
-    def parse_and_structure_pdf(self, file_content: bytes, password: str = None) -> list:
+    def parse_and_structure_pdf(self, file_content: bytes, pdf_id: str, password: str = None) -> list:
         """
         Parses PDF and returns structured transaction data.
         """
@@ -33,6 +33,7 @@ class PDFParserService:
                         for row in table:
                             mapped = transaction_mapper.map_row_to_transaction(row, rules, col_map)
                             if mapped:
+                                mapped["pdf_id"] = pdf_id
                                 structured_data.append(mapped)
             return structured_data
         except Exception as e:

@@ -5,6 +5,7 @@ from app.models.schemas import ParseResult, ErrorResponse, MerchantRule
 import logging
 import json
 import os
+import uuid
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -31,8 +32,11 @@ async def parse_pdf(
             
             parser = PDFParserService()
             
+            # Generate UUID for this PDF
+            pdf_id = str(uuid.uuid4())
+            
             # Extract structured transaction data
-            structured_transactions = parser.parse_and_structure_pdf(content, password=password)
+            structured_transactions = parser.parse_and_structure_pdf(content, pdf_id=pdf_id, password=password)
             all_transactions.extend(structured_transactions)
             
         except Exception as e:

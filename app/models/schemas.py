@@ -11,6 +11,7 @@ class Transaction(BaseModel):
     ref_keys: List[str] = []
     category: str = "other"
     tag: str = "other"
+    pdf_id: Optional[str] = None
 
     class Config:
         populate_by_name = True
