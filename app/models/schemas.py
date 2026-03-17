@@ -11,6 +11,7 @@ class Transaction(BaseModel):
     ref_keys: List[str] = []
     category: str = "other"
     tag: str = "other"
+    pdf_id: Optional[str] = None
 
     class Config:
         populate_by_name = True
@@ -24,3 +25,9 @@ class ParseResult(BaseModel):
 class ErrorResponse(BaseModel):
     error: str
     detail: Optional[str] = None
+
+class MerchantRule(BaseModel):
+    id: Optional[int] = None
+    merchant: str
+    category: str
+    tag: str

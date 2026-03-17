@@ -1,10 +1,11 @@
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException
 from typing import Optional, List
 from app.services.pdf_parser import PDFParserService
-from app.models.schemas import ParseResult, ErrorResponse
+from app.models.schemas import ParseResult, ErrorResponse, MerchantRule
 import logging
 import json
 import os
+import uuid
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -31,8 +32,11 @@ async def parse_pdf(
             
             parser = PDFParserService()
             
+            # Generate UUID for this PDF
+            pdf_id = str(uuid.uuid4())
+            
             # Extract structured transaction data
-            structured_transactions = parser.parse_and_structure_pdf(content, password=password)
+            structured_transactions = parser.parse_and_structure_pdf(content, pdf_id=pdf_id, password=password)
             all_transactions.extend(structured_transactions)
             
         except Exception as e:
@@ -102,3 +106,45 @@ async def get_transaction_tags(refresh: bool = False):
     except Exception as e:
         logger.error(f"Fallback failed: {str(e)}")
         raise HTTPException(status_code=500, detail="Failed to fetch merchant rules")
+
+@router.post("/merchant-rules")
+async def add_merchant_rule(rule: MerchantRule):
+    """
+    Add a new merchant rule to Google Sheets
+    """
+    try:
+        success = gsheet_service.add_merchant_rule(rule.model_dump())
+        if success:
+            return {"message": "Merchant rule added successfully"}
+        raise HTTPException(status_code=500, detail="Failed to add merchant rule")
+    except Exception as e:
+        logger.error(f"Error adding merchant rule: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+
+@router.put("/merchant-rules/{rule_id}")
+async def update_merchant_rule(rule_id: int, rule: MerchantRule):
+    """
+    Update an existing merchant rule in Google Sheets
+    """
+    try:
+        success = gsheet_service.update_merchant_rule(rule_id, rule.model_dump())
+        if success:
+            return {"message": f"Merchant rule {rule_id} updated successfully"}
+        raise HTTPException(status_code=404, detail=f"Merchant rule {rule_id} not found")
+    except Exception as e:
+        logger.error(f"Error updating merchant rule: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+
+@router.delete("/merchant-rules/{rule_id}")
+async def delete_merchant_rule(rule_id: int):
+    """
+    Delete a merchant rule from Google Sheets
+    """
+    try:
+        success = gsheet_service.delete_merchant_rule(rule_id)
+        if success:
+            return {"message": f"Merchant rule {rule_id} deleted successfully"}
+        raise HTTPException(status_code=404, detail=f"Merchant rule {rule_id} not found")
+    except Exception as e:
+        logger.error(f"Error deleting merchant rule: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
