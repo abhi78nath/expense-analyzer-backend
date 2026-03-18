@@ -13,10 +13,12 @@ logger = logging.getLogger(__name__)
 @router.post("/parse-pdf", response_model=ParseResult, responses={400: {"model": ErrorResponse}, 500: {"model": ErrorResponse}})
 async def parse_pdf(
     files: List[UploadFile] = File(...),
+    user_id: Optional[str] = Form(None),
     password: Optional[str] = Form(None)
 ):
     all_transactions = []
     filenames = []
+    pdf_info = []
     total_size = 0
     
     for file in files:
@@ -34,9 +36,13 @@ async def parse_pdf(
             
             # Generate UUID for this PDF
             pdf_id = str(uuid.uuid4())
+            pdf_info.append({"id": pdf_id, "filename": file.filename})
             
             # Extract structured transaction data
             structured_transactions = parser.parse_and_structure_pdf(content, pdf_id=pdf_id, password=password)
+            if user_id:
+                for t in structured_transactions:
+                    t["user_id"] = user_id
             all_transactions.extend(structured_transactions)
             
         except Exception as e:
@@ -59,7 +65,8 @@ async def parse_pdf(
         transactions=all_transactions,
         metadata={
             "file_count": len(filenames),
-            "total_size": total_size
+            "total_size": total_size,
+            "pdfs": pdf_info
         }
     )
 
