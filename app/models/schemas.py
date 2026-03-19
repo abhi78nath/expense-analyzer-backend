@@ -12,6 +12,8 @@ class Transaction(BaseModel):
     category: str = "other"
     tag: str = "other"
     pdf_id: Optional[str] = None
+    user_id: Optional[str] = None
+    ifsc: Optional[str] = None
 
     class Config:
         populate_by_name = True
