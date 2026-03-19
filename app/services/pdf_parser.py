@@ -3,11 +3,38 @@ import io
 import logging
 import json
 import os
+import re
 
 logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO)
 
 from app.services.transaction_mapper import transaction_mapper
 
+# First 4 chars of IFSC → bank name
+IFSC_BANK_MAP = {
+    "HDFC": "HDFC Bank",
+    "SBIN": "State Bank of India",
+    "ICIC": "ICICI Bank",
+    "UTIB": "Axis Bank",
+    "KKBK": "Kotak Mahindra Bank",
+    "PUNB": "Punjab National Bank",
+    "BARB": "Bank of Baroda",
+    "CNRB": "Canara Bank",
+    "IOBA": "Indian Overseas Bank",
+    "YESB": "Yes Bank",
+    "IDBI": "IDBI Bank",
+    "INDB": "IndusInd Bank",
+    "FDRL": "Federal Bank",
+    "KVBL": "Karur Vysya Bank",
+    "CITI": "Citibank",
+    "HSBC": "HSBC Bank",
+    "SCBL": "Standard Chartered",
+    "RATN": "RBL Bank",
+    "IDFB": "IDFC First Bank",
+    "BDBL": "Bandhan Bank",
+}
+
+IFSC_PATTERN = re.compile(r'\b([A-Z]{4}0[A-Z0-9]{6})\b')
 class PDFParserService:
     def __init__(self):
         pass
@@ -17,6 +44,8 @@ class PDFParserService:
         Parses PDF and returns structured transaction data.
         """
         structured_data = []
+        ifsc_code  = None
+        bank_name  = "Unknown Bank"
         # Fetch rules once per parse call to ensure they are fresh (honors gsheet cache TTL)
         rules = transaction_mapper.load_merchant_rules()
         logger.info(f"Using {len(rules)} merchant rules for transaction mapping")
@@ -24,6 +53,17 @@ class PDFParserService:
         try:
             with pdfplumber.open(io.BytesIO(file_content), password=password) as pdf:
                 for page in pdf.pages:
+                    # ── Extract IFSC from raw text ──────────────────
+                    if ifsc_code is None:
+                        text = page.extract_text() or ""
+                        ifsc_code = PDFParserService._extract_ifsc(text)
+                        if ifsc_code:
+                            bank_name = PDFParserService._bank_name_from_ifsc(ifsc_code)
+                            logger.info(f"Found IFSC: {ifsc_code} and Bank Name: {bank_name}")
+                        else:
+                            logger.info("No IFSC code found")
+
+
                     tables = page.extract_tables()
                     for table in tables:
                         if not table: continue
@@ -35,7 +75,11 @@ class PDFParserService:
                             if mapped:
                                 mapped["pdf_id"] = pdf_id
                                 structured_data.append(mapped)
-            return structured_data
+            return {
+                "transactions": structured_data,
+                "ifsc_code":    ifsc_code,
+                "bank_name":    bank_name,
+            }
         except Exception as e:
             logger.error(f"Error parsing PDF: {str(e)}")
             raise e
@@ -89,3 +133,21 @@ class PDFParserService:
         except Exception as e:
             logger.error(f"Error extracting text: {str(e)}")
             raise e
+
+    @staticmethod
+    def _extract_ifsc(text: str) -> str | None:
+        """
+        Scans raw page text for a valid IFSC code.
+        Returns the first match or None.
+        """
+        match = IFSC_PATTERN.search(text)
+        return match.group(1) if match else None
+
+    @staticmethod
+    def _bank_name_from_ifsc(ifsc_code: str) -> str:
+        """
+        Derives bank name from first 4 chars of IFSC.
+        Falls back to the 4-char code itself if not in map.
+        """
+        prefix = ifsc_code[:4].upper()
+        return IFSC_BANK_MAP.get(prefix, f"Bank ({prefix})")

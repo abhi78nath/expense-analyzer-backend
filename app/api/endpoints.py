@@ -39,7 +39,11 @@ async def parse_pdf(
             pdf_info.append({"id": pdf_id, "filename": file.filename})
             
             # Extract structured transaction data
-            structured_transactions = parser.parse_and_structure_pdf(content, pdf_id=pdf_id, password=password)
+            result = parser.parse_and_structure_pdf(content, pdf_id=pdf_id, password=password)
+            structured_transactions = result["transactions"]
+            ifsc_code         = result["ifsc_code"]
+            bank_name         = result["bank_name"]
+            
             if user_id:
                 for t in structured_transactions:
                     t["user_id"] = user_id
@@ -66,7 +70,9 @@ async def parse_pdf(
         metadata={
             "file_count": len(filenames),
             "total_size": total_size,
-            "pdfs": pdf_info
+            "pdfs": pdf_info,
+            "bank_name": bank_name,
+            "ifsc_code": ifsc_code
         }
     )
 
