@@ -4,6 +4,7 @@ import logging
 import json
 import os
 import re
+import uuid
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
@@ -74,6 +75,7 @@ class PDFParserService:
                             mapped = transaction_mapper.map_row_to_transaction(row, rules, col_map)
                             if mapped:
                                 mapped["pdf_id"] = pdf_id
+                                mapped["id"] = f"{pdf_id}-{uuid.uuid4()}"
                                 structured_data.append(mapped)
             return {
                 "transactions": structured_data,
